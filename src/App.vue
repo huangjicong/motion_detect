@@ -260,6 +260,13 @@ async function detect() {
             />
             <span class="zoom-value">{{ Math.round(zoom * 100) }}%</span>
           </div>
+          <button
+            class="zoom-reset"
+            @click="zoom = 1.0"
+            :disabled="status !== 'running' || zoom === 1.0"
+          >
+            重置
+          </button>
           <p class="zoom-hint">离摄像头近时放大，远时缩小</p>
         </div>
 
@@ -551,5 +558,26 @@ button:disabled {
   margin-top: 8px;
   font-size: 0.8rem;
   color: #666;
+}
+
+.zoom-reset {
+  margin-top: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  background: #0f3460;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.zoom-reset:hover:not(:disabled) {
+  background: #1a4a7a;
+}
+
+.zoom-reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
