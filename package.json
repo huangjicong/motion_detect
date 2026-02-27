@@ -1,0 +1,24 @@
+{
+  "name": "xgame-motion-capture",
+  "version": "1.0.0",
+  "description": "Real-time multi-person motion capture for games",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tensorflow-models/pose-detection": "^2.1.3",
+    "@tensorflow/tfjs": "^4.21.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.21.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.21.0",
+    "vue": "^3.4.21"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.6",
+    "vue-tsc": "^2.0.6"
+  }
+}
