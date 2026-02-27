@@ -15,6 +15,7 @@ const fps = ref(0)
 const playerCount = ref(0)
 const detectedActions = ref<{ type: string; label: string; playerId: number }[]>([])
 const serverConnected = ref(false)
+const zoom = ref(1.0) // 1.0 = 100%, 2.0 = 200%
 
 // 核心实例
 let camera: CameraManager
@@ -230,6 +231,22 @@ async function detect() {
             </button>
             <button @click="stop" :disabled="status !== 'running'">停止</button>
           </div>
+        </div>
+
+        <div class="panel">
+          <h3>摄像头缩放</h3>
+          <div class="zoom-control">
+            <input
+              type="range"
+              min="1"
+              max="2"
+              step="0.1"
+              v-model.number="zoom"
+              :disabled="status !== 'running'"
+            />
+            <span class="zoom-value">{{ Math.round(zoom * 100) }}%</span>
+          </div>
+          <p class="zoom-hint">离摄像头近时放大，远时缩小</p>
         </div>
 
         <div class="panel">
@@ -474,5 +491,47 @@ button:disabled {
 
 .action-list li:last-child {
   border-bottom: none;
+}
+
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zoom-control input[type="range"] {
+  flex: 1;
+  height: 6px;
+  -webkit-appearance: none;
+  background: #0f3460;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.zoom-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #e94560;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.zoom-control input[type="range"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zoom-value {
+  min-width: 50px;
+  text-align: right;
+  font-weight: bold;
+  color: #fff;
+}
+
+.zoom-hint {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #666;
 }
 </style>
