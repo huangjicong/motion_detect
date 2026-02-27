@@ -299,14 +299,42 @@ export class ActionRecognizer {
 
     if (!currPose || !oldPose) return false
 
-    const currHip = currPose.keypoints.find((k) => k.name === 'left_hip')
-    const oldHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
+    // 获取臀部关键点（使用双侧，取平均）
+    const currLeftHip = currPose.keypoints.find((k) => k.name === 'left_hip')
+    const currRightHip = currPose.keypoints.find((k) => k.name === 'right_hip')
+    const oldLeftHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
+    const oldRightHip = oldPose.keypoints.find((k) => k.name === 'right_hip')
 
-    if (!currHip || !oldHip) return false
+    const threshold = 0.3
 
-    // 臀部明显下移（降低阈值，使用多帧累积）
-    const dy = currHip.y - oldHip.y
-    return dy > 20
+    // 计算当前和过去的臀部 Y 坐标
+    let currHipY: number | null = null
+    let oldHipY: number | null = null
+
+    // 优先使用双侧平均，其次使用单侧
+    if (currLeftHip && currRightHip &&
+        currLeftHip.score > threshold && currRightHip.score > threshold) {
+      currHipY = (currLeftHip.y + currRightHip.y) / 2
+    } else if (currLeftHip && currLeftHip.score > threshold) {
+      currHipY = currLeftHip.y
+    } else if (currRightHip && currRightHip.score > threshold) {
+      currHipY = currRightHip.y
+    }
+
+    if (oldLeftHip && oldRightHip &&
+        oldLeftHip.score > threshold && oldRightHip.score > threshold) {
+      oldHipY = (oldLeftHip.y + oldRightHip.y) / 2
+    } else if (oldLeftHip && oldLeftHip.score > threshold) {
+      oldHipY = oldLeftHip.y
+    } else if (oldRightHip && oldRightHip.score > threshold) {
+      oldHipY = oldRightHip.y
+    }
+
+    if (currHipY === null || oldHipY === null) return false
+
+    // 臀部明显下移（Y 坐标增大）
+    const dy = currHipY - oldHipY
+    return dy > 30
   }
 
   // 检测跳跃 - 使用多帧累积检测
@@ -320,13 +348,41 @@ export class ActionRecognizer {
 
     if (!currPose || !oldPose) return false
 
-    const currHip = currPose.keypoints.find((k) => k.name === 'left_hip')
-    const oldHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
+    // 获取臀部关键点（使用双侧，取平均）
+    const currLeftHip = currPose.keypoints.find((k) => k.name === 'left_hip')
+    const currRightHip = currPose.keypoints.find((k) => k.name === 'right_hip')
+    const oldLeftHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
+    const oldRightHip = oldPose.keypoints.find((k) => k.name === 'right_hip')
 
-    if (!currHip || !oldHip) return false
+    const threshold = 0.3
 
-    // 臀部明显上移（降低阈值，使用多帧累积）
-    const dy = oldHip.y - currHip.y
-    return dy > 20
+    // 计算当前和过去的臀部 Y 坐标
+    let currHipY: number | null = null
+    let oldHipY: number | null = null
+
+    // 优先使用双侧平均，其次使用单侧
+    if (currLeftHip && currRightHip &&
+        currLeftHip.score > threshold && currRightHip.score > threshold) {
+      currHipY = (currLeftHip.y + currRightHip.y) / 2
+    } else if (currLeftHip && currLeftHip.score > threshold) {
+      currHipY = currLeftHip.y
+    } else if (currRightHip && currRightHip.score > threshold) {
+      currHipY = currRightHip.y
+    }
+
+    if (oldLeftHip && oldRightHip &&
+        oldLeftHip.score > threshold && oldRightHip.score > threshold) {
+      oldHipY = (oldLeftHip.y + oldRightHip.y) / 2
+    } else if (oldLeftHip && oldLeftHip.score > threshold) {
+      oldHipY = oldLeftHip.y
+    } else if (oldRightHip && oldRightHip.score > threshold) {
+      oldHipY = oldRightHip.y
+    }
+
+    if (currHipY === null || oldHipY === null) return false
+
+    // 臀部明显上移（Y 坐标减小）
+    const dy = oldHipY - currHipY
+    return dy > 30
   }
 }
