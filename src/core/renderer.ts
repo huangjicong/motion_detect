@@ -18,6 +18,7 @@ export class SkeletonRenderer {
   private width: number = 0
   private height: number = 0
   private flipHorizontal: boolean = true
+  private zoom: number = 1.0
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx
@@ -34,8 +35,13 @@ export class SkeletonRenderer {
     this.flipHorizontal = flip
   }
 
+  setZoom(zoom: number): void {
+    this.zoom = zoom
+  }
+
   render(poses: PoseResult[]): void {
     const ctx = this.ctx
+    const scale = 1 / this.zoom // Inverse scale for coordinates
 
     // 清空画布
     ctx.clearRect(0, 0, this.width, this.height)
@@ -47,10 +53,16 @@ export class SkeletonRenderer {
       ctx.translate(-this.width, 0)
     }
 
+    // Scale for zoom
+    ctx.save()
+    ctx.scale(scale, scale)
+
     // 绘制每个检测到的人
     poses.forEach((pose, index) => {
       this.drawPerson(pose, index)
     })
+
+    ctx.restore()
 
     if (this.flipHorizontal) {
       ctx.restore()

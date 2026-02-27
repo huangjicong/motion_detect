@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { CameraManager, PoseDetector, SkeletonRenderer, ACTION_LABELS } from './core'
 import { GameBridge, ActionRecognizer } from './game'
 import type { ActionEvent } from './core'
@@ -16,6 +16,13 @@ const playerCount = ref(0)
 const detectedActions = ref<{ type: string; label: string; playerId: number }[]>([])
 const serverConnected = ref(false)
 const zoom = ref(1.0) // 1.0 = 100%, 2.0 = 200%
+
+// Watch zoom changes and update renderer
+watch(zoom, (newZoom) => {
+  if (renderer) {
+    renderer.setZoom(newZoom)
+  }
+})
 
 // 核心实例
 let camera: CameraManager
@@ -99,6 +106,7 @@ async function start() {
     const resolution = camera.getResolution()
     renderer.setSize(resolution.width, resolution.height)
     renderer.setFlip(true)
+    renderer.setZoom(zoom.value)
 
     // 连接游戏服务器（可选）
     gameBridge.connect().catch(() => {
