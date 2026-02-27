@@ -61,11 +61,9 @@ export class PoseDetector {
       throw new Error('无法初始化 TensorFlow.js 后端')
     }
 
-    // 创建 MoveNet 检测器
-    const modelType =
-      this.config.modelType === 'thunder'
-        ? poseDetection.movenet.modelType.SINGLEPOSE_THUNDER
-        : poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING
+    // 创建 MoveNet 检测器 - 使用 MULTIPOSE 支持多人检测
+    // 注意: MoveNet 多人模式使用 MULTIPOSE_LIGHTNING
+    const modelType = poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING
 
     this.detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet,

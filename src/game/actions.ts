@@ -158,31 +158,30 @@ export class ActionRecognizer {
     const history = this.getHistory(playerId)
     if (history.length < 10) return false
 
-    // 计算左右脚踝的移动模式
-    const ankleMovements: number[] = []
+    // 计算左右膝盖和脚踝的移动模式
+    const legMovements: number[] = []
     for (let i = 1; i < history.length; i++) {
-      const prevLeftAnkle = history[i - 1].keypoints.find((k) => k.name === 'left_ankle')
-      const currLeftAnkle = history[i].keypoints.find((k) => k.name === 'left_ankle')
-      const prevRightAnkle = history[i - 1].keypoints.find((k) => k.name === 'right_ankle')
-      const currRightAnkle = history[i].keypoints.find((k) => k.name === 'right_ankle')
+      const prev = history[i - 1]
+      const curr = history[i]
 
-      if (currLeftAnkle && prevLeftAnkle && currRightAnkle && prevRightAnkle) {
-        const leftMove = Math.abs(currLeftAnkle.x - prevLeftAnkle.x)
-        const rightMove = Math.abs(currRightAnkle.x - prevRightAnkle.x)
-        ankleMovements.push(leftMove + rightMove)
+      // 检查膝盖移动
+      const leftKneeMove = this.getKeypointMovement(prev, curr, 'left_knee')
+      const rightKneeMove = this.getKeypointMovement(prev, curr, 'right_knee')
+
+      if (leftKneeMove !== null && rightKneeMove !== null) {
+        legMovements.push(leftKneeMove + rightKneeMove)
       }
     }
 
-    if (ankleMovements.length < 8) return false
+    if (legMovements.length < 6) return false
 
     // 计算平均移动速度
-    const avgMovement = ankleMovements.reduce((a, b) => a + b, 0) / ankleMovements.length
+    const avgMovement = legMovements.reduce((a, b) => a + b, 0) / legMovements.length
 
-    // 走路：中等速度的腿部移动 (5-20 像素/帧)
-    // 同时检查身体是否有水平位移
+    // 走路：中等速度的腿部移动 (3-15 像素/帧)
     const horizontalDisplacement = this.getHorizontalDisplacement(history)
 
-    return avgMovement > 5 && avgMovement < 20 && horizontalDisplacement > 10
+    return avgMovement > 3 && avgMovement <= 15 && horizontalDisplacement > 5
   }
 
   // 检测跑步 - 更快的腿部移动
@@ -191,31 +190,48 @@ export class ActionRecognizer {
     if (history.length < 10) return false
 
     // 计算腿部移动速度
-    const ankleMovements: number[] = []
+    const legMovements: number[] = []
     for (let i = 1; i < history.length; i++) {
-      const prevLeftAnkle = history[i - 1].keypoints.find((k) => k.name === 'left_ankle')
-      const currLeftAnkle = history[i].keypoints.find((k) => k.name === 'left_ankle')
-      const prevRightAnkle = history[i - 1].keypoints.find((k) => k.name === 'right_ankle')
-      const currRightAnkle = history[i].keypoints.find((k) => k.name === 'right_ankle')
+      const prev = history[i - 1]
+      const curr = history[i]
 
-      if (currLeftAnkle && prevLeftAnkle && currRightAnkle && prevRightAnkle) {
-        const leftMove = Math.abs(currLeftAnkle.x - prevLeftAnkle.x)
-        const rightMove = Math.abs(currRightAnkle.x - prevRightAnkle.x)
-        ankleMovements.push(leftMove + rightMove)
+      const leftKneeMove = this.getKeypointMovement(prev, curr, 'left_knee')
+      const rightKneeMove = this.getKeypointMovement(prev, curr, 'right_knee')
+
+      if (leftKneeMove !== null && rightKneeMove !== null) {
+        legMovements.push(leftKneeMove + rightKneeMove)
       }
     }
 
-    if (ankleMovements.length < 8) return false
+    if (legMovements.length < 6) return false
 
     // 计算平均移动速度
-    const avgMovement = ankleMovements.reduce((a, b) => a + b, 0) / ankleMovements.length
+    const avgMovement = legMovements.reduce((a, b) => a + b, 0) / legMovements.length
 
-    // 跑步：更快的腿部移动 (>20 像素/帧)
-    // 同时检查手臂是否有更大幅度的摆动
+    // 跑步：更快的腿部移动 (>15 像素/帧)
     const armSwing = this.getArmSwing(history)
     const horizontalDisplacement = this.getHorizontalDisplacement(history)
 
-    return avgMovement >= 20 && armSwing > 15 && horizontalDisplacement > 20
+    return avgMovement > 15 && armSwing > 10 && horizontalDisplacement > 10
+  }
+
+  // 辅助方法：获取关键点移动距离
+  private getKeypointMovement(
+    prevPose: PoseResult,
+    currPose: PoseResult,
+    keypointName: string
+  ): number | null {
+    const prevKp = prevPose.keypoints.find((k) => k.name === keypointName)
+    const currKp = currPose.keypoints.find((k) => k.name === keypointName)
+
+    if (!prevKp || !currKp || prevKp.score < 0.3 || currKp.score < 0.3) {
+      return null
+    }
+
+    const dx = Math.abs(currKp.x - prevKp.x)
+    const dy = Math.abs(currKp.y - prevKp.y)
+
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   // 获取手臂摆动幅度
@@ -272,43 +288,45 @@ export class ActionRecognizer {
     return dx > 30 && dy < 20 && horizontalDisplacement < 30
   }
 
-  // 检测下蹲
+  // 检测下蹲 - 使用多帧累积检测
   private checkSquat(playerId: number): boolean {
     const history = this.getHistory(playerId)
-    if (history.length < 3) return false
+    if (history.length < 5) return false
 
+    // 比较当前帧和5帧前的位置
     const currPose = history[history.length - 1]
-    const prevPose = history[history.length - 2]
+    const oldPose = history[history.length - 5]
 
-    if (!currPose || !prevPose) return false
+    if (!currPose || !oldPose) return false
 
     const currHip = currPose.keypoints.find((k) => k.name === 'left_hip')
-    const prevHip = prevPose.keypoints.find((k) => k.name === 'left_hip')
+    const oldHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
 
-    if (!currHip || !prevHip) return false
+    if (!currHip || !oldHip) return false
 
-    // 臀部明显下移
-    const dy = currHip.y - prevHip.y
-    return dy > 30
+    // 臀部明显下移（降低阈值，使用多帧累积）
+    const dy = currHip.y - oldHip.y
+    return dy > 20
   }
 
-  // 检测跳跃
+  // 检测跳跃 - 使用多帧累积检测
   private checkJump(playerId: number): boolean {
     const history = this.getHistory(playerId)
-    if (history.length < 3) return false
+    if (history.length < 5) return false
 
+    // 比较当前帧和5帧前的位置
     const currPose = history[history.length - 1]
-    const prevPose = history[history.length - 2]
+    const oldPose = history[history.length - 5]
 
-    if (!currPose || !prevPose) return false
+    if (!currPose || !oldPose) return false
 
     const currHip = currPose.keypoints.find((k) => k.name === 'left_hip')
-    const prevHip = prevPose.keypoints.find((k) => k.name === 'left_hip')
+    const oldHip = oldPose.keypoints.find((k) => k.name === 'left_hip')
 
-    if (!currHip || !prevHip) return false
+    if (!currHip || !oldHip) return false
 
-    // 臀部明显上移
-    const dy = prevHip.y - currHip.y
-    return dy > 30
+    // 臀部明显上移（降低阈值，使用多帧累积）
+    const dy = oldHip.y - currHip.y
+    return dy > 20
   }
 }
