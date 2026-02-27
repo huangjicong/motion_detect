@@ -211,8 +211,14 @@ async function detect() {
 
     <main class="main">
       <div class="video-container">
-        <video ref="videoRef" autoplay playsinline muted></video>
-        <canvas ref="canvasRef"></canvas>
+        <video
+          ref="videoRef"
+          autoplay
+          playsinline
+          muted
+          :style="{ transform: `scaleX(-1) scale(${zoom})` }"
+        ></video>
+        <canvas ref="canvasRef" :style="{ transform: `scale(${zoom})` }"></canvas>
 
         <!-- 动作提示 -->
         <div v-if="detectedActions.length > 0" class="action-overlay">
@@ -346,6 +352,11 @@ async function detect() {
   aspect-ratio: 16 / 9;
 }
 
+.video-container video,
+.video-container canvas {
+  transform-origin: center center;
+}
+
 video {
   position: absolute;
   top: 0;
@@ -353,7 +364,6 @@ video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1);
 }
 
 canvas {
